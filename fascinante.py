@@ -6,7 +6,7 @@ import json
 import subprocess
 from datetime import datetime
 import re
-import webbrowser  # Nova importação para abrir o navegador
+import webbrowser
 
 # ==========================================
 # CONFIGURAÇÕES DE CORES
@@ -17,7 +17,8 @@ PRIMARY_BLUE = "#0066cc"
 DARK_BLUE = "#004080"
 LIGHT_BLUE = "#e6f0ff"
 TEXT_COLOR = "#333333"
-GREEN_BTN = "#28a745" # Cor para o botão de abrir link
+GREEN_BTN = "#28a745"
+ORANGE_BTN = "#e67e22" # Cor para o botão de copiar link
 
 # ==========================================
 # LÓGICA PRINCIPAL DO APLICATIVO
@@ -29,7 +30,7 @@ class AppFascinante:
         self.csv_path = os.path.join(repo_path, 'fascinante.csv')
         self.registros = []
 
-        # Configurações da Janela Principal (Aumentada)
+        # Configurações da Janela Principal
         self.root.title("Extrator e Gerenciador - Projeto Fascinante")
         self.root.geometry("1100x850") 
         self.root.configure(bg=BG_COLOR)
@@ -66,7 +67,6 @@ class AppFascinante:
 
         # --- Seção CRUD (Tabela) ---
         frame_crud = tk.Frame(self.root, bg=WHITE, bd=1, relief=tk.SOLID, padx=15, pady=15)
-        # expand=True permite que a tabela cresça, mas a área de edição será preservada
         frame_crud.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 15))
 
         tk.Label(frame_crud, text="Registros Salvos (fascinante.csv)", bg=WHITE, fg=DARK_BLUE, font=('Arial', 12, 'bold')).pack(anchor=tk.W, pady=(0, 5))
@@ -90,8 +90,7 @@ class AppFascinante:
 
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # Configurando tamanhos fixos para as colunas (stretch=False para ativar scroll horizontal)
-        # Assunto, Link e Texto com 600px acomodam confortavelmente 100 caracteres
+        # Configurando tamanhos fixos para as colunas
         self.tree.column("Data e Hora", width=150, anchor=tk.W, stretch=tk.NO)
         self.tree.column("Assunto", width=600, anchor=tk.W, stretch=tk.NO)
         self.tree.column("Link", width=600, anchor=tk.W, stretch=tk.NO)
@@ -102,11 +101,11 @@ class AppFascinante:
 
         self.tree.bind("<Double-1>", self.carregar_para_edicao) 
 
-        # --- Área de Edição/Exclusão (Tamanho fixo na parte inferior) ---
+        # --- Área de Edição/Exclusão ---
         frame_edicao = tk.Frame(frame_crud, bg=LIGHT_BLUE, padx=10, pady=15)
         frame_edicao.pack(fill=tk.X, side=tk.BOTTOM)
 
-        tk.Label(frame_edicao, text="Selecione um item na tabela com Duplo Clique para Editar/Excluir/Abrir", bg=LIGHT_BLUE, font=('Arial', 9, 'italic')).grid(row=0, column=0, columnspan=5, pady=(0, 10), sticky=tk.W)
+        tk.Label(frame_edicao, text="Selecione um item na tabela com Duplo Clique para Editar/Excluir/Acessar o link", bg=LIGHT_BLUE, font=('Arial', 9, 'italic')).grid(row=0, column=0, columnspan=5, pady=(0, 10), sticky=tk.W)
 
         # Entradas
         tk.Label(frame_edicao, text="Assunto:", bg=LIGHT_BLUE).grid(row=1, column=0, sticky=tk.E, padx=5)
@@ -131,9 +130,12 @@ class AppFascinante:
         btn_excluir = tk.Button(frame_botoes, text="Excluir", bg="#cc0000", fg=WHITE, relief=tk.FLAT, command=self.excluir_registro)
         btn_excluir.pack(side=tk.LEFT, padx=5)
 
-        # Novo botão: Abrir Link
         btn_abrir = tk.Button(frame_botoes, text="Abrir Link", bg=GREEN_BTN, fg=WHITE, relief=tk.FLAT, command=self.abrir_link_navegador)
         btn_abrir.pack(side=tk.LEFT, padx=5)
+
+        # Novo botão: Copiar Link
+        btn_copiar = tk.Button(frame_botoes, text="Copiar Link", bg=ORANGE_BTN, fg=WHITE, relief=tk.FLAT, command=self.copiar_link)
+        btn_copiar.pack(side=tk.LEFT, padx=5)
 
     # --- Funções CRUD e Lógica ---
     def extrair_dados(self):
@@ -152,13 +154,9 @@ class AppFascinante:
             linhas = [l.strip() for l in texto.split('\n') if l.strip()]
             if linhas: assunto_extraido = linhas[0]
 
-        # Lógica de Limpeza do Assunto (Remove hashtags e emojis)
         if assunto_extraido:
-            # 1. Remove qualquer hashtag (ex: #shorts, #feed)
             assunto_limpo = re.sub(r'#\S+', '', assunto_extraido)
-            # 2. Remove emojis e caracteres indesejados (mantém letras, números, pontuação e acentuação PT-BR)
             assunto_limpo = re.sub(r'[^\w\s.,!?"\'-À-ÿ]', '', assunto_limpo)
-            # 3. Limpa espaços duplos e nas bordas
             assunto_extraido = re.sub(r'\s+', ' ', assunto_limpo).strip()
 
         match_link = re.search(r'(https?://[^\s]+)', texto)
@@ -225,12 +223,22 @@ class AppFascinante:
                 self.limpar_campos_edicao()
 
     def abrir_link_navegador(self):
-        """Abre o link que estiver atualmente no campo de edição no navegador padrão."""
         link = self.entry_link.get().strip()
         if link and link.startswith("http"):
             webbrowser.open(link)
         else:
-            messagebox.showinfo("Aviso", "Não há um link válido preenchido para abrir. Selecione um item na tabela primeiro.")
+            messagebox.showinfo("Aviso", "Não há um link válido preenchido para abrir.")
+
+    def copiar_link(self):
+        """Copia o link atualmente na caixa de texto para a área de transferência."""
+        link = self.entry_link.get().strip()
+        if link:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(link)
+            self.root.update() # Necessário no Tkinter para fixar na memória do OS
+            messagebox.showinfo("Copiado", "Link copiado para a área de transferência com sucesso!")
+        else:
+            messagebox.showinfo("Aviso", "Não há um link preenchido para copiar. Selecione um item na tabela primeiro.")
 
     def limpar_campos_edicao(self):
         self.entry_assunto.delete(0, tk.END)
