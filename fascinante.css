@@ -1,0 +1,144 @@
+/* Definição de Variáveis de Cores (Tons de Azul e Branco) */
+:root {
+    --cor-fundo: #f4f7f6;
+    --cor-branco: #ffffff;
+    --azul-muito-claro: #e6f0ff;
+    --azul-claro: #99c2ff;
+    --azul-primario: #0066cc;
+    --azul-escuro: #004080;
+    --cor-texto: #333333;
+    --cor-borda: #cccccc;
+    --cor-perigo: #cc0000;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background-color: var(--azul-escuro);
+    color: var(--cor-branco);
+    padding: 1.5rem;
+    text-align: center;
+}
+
+main {
+    max-width: 1100px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.card {
+    background-color: var(--cor-branco);
+    border-top: 4px solid var(--azul-primario);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.card h2 {
+    color: var(--azul-escuro);
+    margin-top: 0;
+}
+
+textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--azul-claro);
+    border-radius: 4px;
+    resize: vertical;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: var(--azul-primario);
+    background-color: var(--azul-muito-claro);
+}
+
+.acoes, .acoes-arquivo {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.btn-primario {
+    background-color: var(--azul-primario);
+    color: var(--cor-branco);
+}
+
+.btn-primario:hover {
+    background-color: var(--azul-escuro);
+}
+
+.btn-secundario {
+    background-color: var(--azul-claro);
+    color: var(--azul-escuro);
+}
+
+.btn-secundario:hover {
+    background-color: #7aaef5;
+}
+
+.btn-excluir {
+    background-color: var(--cor-branco);
+    color: var(--cor-perigo);
+    border: 1px solid var(--cor-perigo);
+    padding: 6px 12px;
+}
+
+.btn-excluir:hover {
+    background-color: var(--cor-perigo);
+    color: var(--cor-branco);
+}
+
+.tabela-container {
+    overflow-x: auto;
+    margin-top: 15px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid var(--cor-borda);
+    padding: 10px;
+    text-align: left;
+}
+
+th {
+    background-color: var(--azul-primario);
+    color: var(--cor-branco);
+}
+
+/* Campos de texto dentro da tabela para edição rápida (Update do CRUD) */
+td input[type="text"] {
+    width: 100%;
+    border: 1px solid transparent;
+    padding: 5px;
+    box-sizing: border-box;
+    background-color: transparent;
+}
+
+td input[type="text"]:focus {
+    border: 1px solid var(--azul-claro);
+    background-color: var(--azul-muito-claro);
+    outline: none;
+}

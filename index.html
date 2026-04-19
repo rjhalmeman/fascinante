@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extrator e Gerenciador de Links</title>
+    <link rel="stylesheet" href="fascinante.css">
+</head>
+<body>
+    <header>
+        <h1>Extrator de Links e Assuntos (CRUD)</h1>
+    </header>
+
+    <main>
+        <section class="card extrair-section">
+            <h2>Extrair Dados do E-mail</h2>
+            <p>Cole o texto contendo o assunto e o link abaixo:</p>
+            <textarea id="inputText" rows="6" placeholder='Exemplo: Assista a "Dicas para parar de esquecer o que estudou #shorts" no YouTubeExternal...'></textarea>
+            
+            <div class="acoes">
+                <button id="btnExtrair" class="btn-primario">Extrair e Adicionar</button>
+            </div>
+        </section>
+
+        <section class="card crud-section">
+            <h2>Registros Salvos</h2>
+            
+            <div class="acoes-arquivo">
+                <input type="file" id="fileInput" accept=".csv" style="display: none;">
+                <button id="btnCarregar" class="btn-secundario" onclick="document.getElementById('fileInput').click()">Carregar CSV</button>
+                <button id="btnSalvar" class="btn-primario">Exportar para CSV</button>
+            </div>
+
+            <div class="tabela-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data e Hora</th>
+                            <th>Assunto</th>
+                            <th>Link</th>
+                            <th>Texto Complementar</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="fascinante.js"></script>
+</body>
+</html>
