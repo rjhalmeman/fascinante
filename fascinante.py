@@ -7,6 +7,8 @@ import subprocess
 from datetime import datetime
 import re
 import webbrowser
+import urllib.request
+import urllib.error
 
 # ==========================================
 # CONFIGURAÇÕES DE CORES
@@ -18,7 +20,7 @@ DARK_BLUE = "#004080"
 LIGHT_BLUE = "#e6f0ff"
 TEXT_COLOR = "#333333"
 GREEN_BTN = "#28a745"
-ORANGE_BTN = "#e67e22" # Cor para o botão de copiar link
+ORANGE_BTN = "#e67e22"
 
 # ==========================================
 # LÓGICA PRINCIPAL DO APLICATIVO
@@ -30,12 +32,10 @@ class AppFascinante:
         self.csv_path = os.path.join(repo_path, 'fascinante.csv')
         self.registros = []
 
-        # Configurações da Janela Principal
         self.root.title("Extrator e Gerenciador - Projeto Fascinante")
         self.root.geometry("1100x850") 
         self.root.configure(bg=BG_COLOR)
         
-        # Intercepta o fechamento da janela para executar o Git Push
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.setup_ui()
@@ -48,16 +48,14 @@ class AppFascinante:
         style.configure("Treeview", font=('Arial', 10), rowheight=25, fieldbackground=WHITE)
         style.map('Treeview', background=[('selected', DARK_BLUE)])
 
-        # --- Cabeçalho ---
         header = tk.Frame(self.root, bg=DARK_BLUE, pady=15)
         header.pack(fill=tk.X)
         tk.Label(header, text="Extrator de Links (Git Integrado)", bg=DARK_BLUE, fg=WHITE, font=('Arial', 16, 'bold')).pack()
 
-        # --- Seção Extração ---
         frame_extracao = tk.Frame(self.root, bg=WHITE, bd=1, relief=tk.SOLID, padx=15, pady=15)
         frame_extracao.pack(fill=tk.X, padx=20, pady=15)
 
-        tk.Label(frame_extracao, text="Cole o texto do e-mail abaixo:", bg=WHITE, fg=DARK_BLUE, font=('Arial', 12, 'bold')).pack(anchor=tk.W, pady=(0, 5))
+        tk.Label(frame_extracao, text="Cole o texto do e-mail ou Link do YouTube abaixo:", bg=WHITE, fg=DARK_BLUE, font=('Arial', 12, 'bold')).pack(anchor=tk.W, pady=(0, 5))
         
         self.text_input = tk.Text(frame_extracao, height=5, font=('Arial', 10), bd=1, relief=tk.SOLID)
         self.text_input.pack(fill=tk.X, pady=5)
@@ -65,13 +63,11 @@ class AppFascinante:
         btn_extrair = tk.Button(frame_extracao, text="Extrair e Adicionar", bg=PRIMARY_BLUE, fg=WHITE, font=('Arial', 10, 'bold'), relief=tk.FLAT, command=self.extrair_dados)
         btn_extrair.pack(anchor=tk.W, pady=5)
 
-        # --- Seção CRUD (Tabela) ---
         frame_crud = tk.Frame(self.root, bg=WHITE, bd=1, relief=tk.SOLID, padx=15, pady=15)
         frame_crud.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 15))
 
         tk.Label(frame_crud, text="Registros Salvos (fascinante.csv)", bg=WHITE, fg=DARK_BLUE, font=('Arial', 12, 'bold')).pack(anchor=tk.W, pady=(0, 5))
 
-        # Container interno para a Tabela e as Barras de Rolagem
         frame_tabela = tk.Frame(frame_crud)
         frame_tabela.pack(fill=tk.BOTH, expand=True, pady=10)
 
@@ -90,7 +86,6 @@ class AppFascinante:
 
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # Configurando tamanhos fixos para as colunas
         self.tree.column("Data e Hora", width=150, anchor=tk.W, stretch=tk.NO)
         self.tree.column("Assunto", width=600, anchor=tk.W, stretch=tk.NO)
         self.tree.column("Link", width=600, anchor=tk.W, stretch=tk.NO)
@@ -101,13 +96,11 @@ class AppFascinante:
 
         self.tree.bind("<Double-1>", self.carregar_para_edicao) 
 
-        # --- Área de Edição/Exclusão ---
         frame_edicao = tk.Frame(frame_crud, bg=LIGHT_BLUE, padx=10, pady=15)
         frame_edicao.pack(fill=tk.X, side=tk.BOTTOM)
 
         tk.Label(frame_edicao, text="Selecione um item na tabela com Duplo Clique para Editar/Excluir/Acessar o link", bg=LIGHT_BLUE, font=('Arial', 9, 'italic')).grid(row=0, column=0, columnspan=5, pady=(0, 10), sticky=tk.W)
 
-        # Entradas
         tk.Label(frame_edicao, text="Assunto:", bg=LIGHT_BLUE).grid(row=1, column=0, sticky=tk.E, padx=5)
         self.entry_assunto = tk.Entry(frame_edicao, width=35)
         self.entry_assunto.grid(row=1, column=1, padx=5, pady=5)
@@ -120,7 +113,6 @@ class AppFascinante:
         self.entry_link = tk.Entry(frame_edicao, width=35)
         self.entry_link.grid(row=2, column=1, padx=5, pady=5)
 
-        # Botões de Ação na Edição
         frame_botoes = tk.Frame(frame_edicao, bg=LIGHT_BLUE)
         frame_botoes.grid(row=2, column=2, columnspan=2, sticky=tk.W, padx=5)
 
@@ -133,11 +125,27 @@ class AppFascinante:
         btn_abrir = tk.Button(frame_botoes, text="Abrir Link", bg=GREEN_BTN, fg=WHITE, relief=tk.FLAT, command=self.abrir_link_navegador)
         btn_abrir.pack(side=tk.LEFT, padx=5)
 
-        # Novo botão: Copiar Link
         btn_copiar = tk.Button(frame_botoes, text="Copiar Link", bg=ORANGE_BTN, fg=WHITE, relief=tk.FLAT, command=self.copiar_link)
         btn_copiar.pack(side=tk.LEFT, padx=5)
 
     # --- Funções CRUD e Lógica ---
+    
+    def obter_titulo_youtube(self, url):
+        """Busca o título do vídeo diretamente do HTML do YouTube."""
+        try:
+            # O User-Agent disfarça o Python de um navegador comum para evitar bloqueios
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            html = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
+            match = re.search(r'<title>(.*?)</title>', html, re.IGNORECASE)
+            if match:
+                titulo = match.group(1)
+                # Remove o sulfixo padrão do youtube
+                titulo = titulo.replace(" - YouTube", "").strip()
+                return titulo
+        except Exception as e:
+            print(f"Erro ao buscar título do YouTube na web: {e}")
+        return ""
+
     def extrair_dados(self):
         texto = self.text_input.get("1.0", tk.END).strip()
         if not texto:
@@ -147,21 +155,34 @@ class AppFascinante:
         assunto_extraido = ""
         link_extraido = ""
 
+        # 1. Pega o Link
+        match_link = re.search(r'(https?://[^\s]+)', texto)
+        if match_link:
+            link_extraido = match_link.group(1)
+
+        # 2. Tenta pegar o Assunto pelos padrões normais
         match_assunto = re.search(r'Assista a "(.*?)"', texto, re.IGNORECASE)
         if match_assunto:
             assunto_extraido = match_assunto.group(1)
         else:
-            linhas = [l.strip() for l in texto.split('\n') if l.strip()]
-            if linhas: assunto_extraido = linhas[0]
+            # Pega a primeira linha desde que não seja o próprio link colado
+            linhas = [l.strip() for l in texto.split('\n') if l.strip() and l.strip() != link_extraido]
+            if linhas: 
+                assunto_extraido = linhas[0]
 
+        # 3. LÓGICA NOVA: Se não achou assunto, mas o link é do YouTube, varre a internet!
+        if not assunto_extraido and link_extraido:
+            if "youtube.com" in link_extraido or "youtu.be" in link_extraido:
+                self.root.config(cursor="watch") # Muda o mouse para 'carregando'
+                self.root.update()
+                assunto_extraido = self.obter_titulo_youtube(link_extraido)
+                self.root.config(cursor="")
+
+        # 4. Limpeza do Assunto (Mantida conforme solicitado)
         if assunto_extraido:
             assunto_limpo = re.sub(r'#\S+', '', assunto_extraido)
             assunto_limpo = re.sub(r'[^\w\s.,!?"\'-À-ÿ]', '', assunto_limpo)
             assunto_extraido = re.sub(r'\s+', ' ', assunto_limpo).strip()
-
-        match_link = re.search(r'(https?://[^\s]+)', texto)
-        if match_link:
-            link_extraido = match_link.group(1)
 
         if not assunto_extraido and not link_extraido:
             messagebox.showwarning("Erro", "Não foi possível extrair dados com o padrão esperado.")
@@ -230,15 +251,14 @@ class AppFascinante:
             messagebox.showinfo("Aviso", "Não há um link válido preenchido para abrir.")
 
     def copiar_link(self):
-        """Copia o link atualmente na caixa de texto para a área de transferência."""
         link = self.entry_link.get().strip()
         if link:
             self.root.clipboard_clear()
             self.root.clipboard_append(link)
-            self.root.update() # Necessário no Tkinter para fixar na memória do OS
-            messagebox.showinfo("Copiado", "Link copiado para a área de transferência com sucesso!")
+            self.root.update() 
+            # Popup removido conforme solicitado!
         else:
-            messagebox.showinfo("Aviso", "Não há um link preenchido para copiar. Selecione um item na tabela primeiro.")
+            messagebox.showinfo("Aviso", "Não há um link preenchido para copiar.")
 
     def limpar_campos_edicao(self):
         self.entry_assunto.delete(0, tk.END)
@@ -271,15 +291,14 @@ class AppFascinante:
             subprocess.run(["git", "add", "."], cwd=self.repo_path, check=True, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
             subprocess.run(["git", "commit", "-m", f"Atualização via App em {data_hora}"], cwd=self.repo_path, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
             subprocess.run(["git", "push"], cwd=self.repo_path, check=True, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+            print("Git Push concluído com sucesso!")
             
-            messagebox.showinfo("Git Push", "Dados salvos e sincronizados com o GitHub com sucesso!")
-        except subprocess.CalledProcessError as e:
-            messagebox.showerror("Erro Git", f"Falha ao enviar para o repositório.\nDetalhes: {e}")
+            # Popup de sucesso removido conforme solicitado. O programa faz o que tem que fazer e fecha.
         except Exception as e:
-            messagebox.showerror("Erro", f"Ocorreu um erro inesperado:\n{e}")
+            print(f"Erro ao atualizar repositório Git: {e}")
+            # Erros popups também removidos para não travar o fechamento.
         finally:
             self.root.destroy()
-
 
 # ==========================================
 # FUNÇÕES DE INICIALIZAÇÃO E GIT PULL
@@ -314,7 +333,7 @@ def executar_git_pull(repo_path):
     except subprocess.CalledProcessError as e:
         messagebox.showwarning("Aviso Git Pull", f"O 'git pull' falhou. Você pode estar offline ou há conflitos.\nO aplicativo abrirá mesmo assim.\n\nDetalhes:\n{e.stderr}")
     except FileNotFoundError:
-         messagebox.showerror("Erro", "Comando 'git' não encontrado. Verifique se o Git está instalado nas variáveis de ambiente do sistema.")
+         messagebox.showerror("Erro", "Comando 'git' não encontrado. Verifique se o Git está instalado.")
 
 # ==========================================
 # BOOTSTRAP DA APLICAÇÃO
