@@ -3,86 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fascinante - Links e Assuntos</title>
+    <title>Fascinante - Gerenciador de CSV</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-        h1 {
-            color: #2c3e50;
-            margin-top: 0;
-            border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 10px;
-        }
-        .search-box {
-            margin-bottom: 20px;
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            box-sizing: border-box;
-            outline: none;
-        }
-        .search-box:focus {
-            border-color: #3498db;
-        }
-        .table-container {
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        th {
-            background-color: #34495e;
-            color: #fff;
-            font-weight: 600;
-        }
-        tr:hover {
-            background-color: #f9f9f9;
-        }
-        a {
-            color: #3498db;
-            text-decoration: none;
-            font-weight: bold;
-            display: inline-block;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .text-complementar {
-            font-style: italic;
-            color: #7f8c8d;
-        }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1, h2 { color: #2c3e50; margin-top: 0; }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 6px; background: #fafafa; }
+        .form-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+        input, button { padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        input[type="text"] { flex: 1; min-width: 150px; }
+        button { background-color: #3498db; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #2980b9; }
+        button.btn-danger { background-color: #e74c3c; }
+        button.btn-danger:hover { background-color: #c0392b; }
+        button.btn-success { background-color: #2ecc71; }
+        button.btn-success:hover { background-color: #27ae60; }
+        .search-box { width: 100%; box-sizing: border-box; margin-bottom: 15px; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        th { background-color: #34495e; color: #fff; }
+        tr:hover { background-color: #f1f1f1; }
+        a { color: #3498db; text-decoration: none; font-weight: bold; }
+        .actions-cell { display: flex; gap: 5px; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>Repositório Fascinante</h1>
-        
+
+        <div class="section">
+            <h2>🔑 Modo Editor (Configuração do GitHub)</h2>
+            <div class="form-group">
+                <input type="text" id="github-user" placeholder="Seu usuário do GitHub (ex: joaosilva)">
+                <input type="password" id="github-token" placeholder="Cole seu Personal Access Token (PAT) aqui">
+                <button onclick="saveConfig()">Ativar Modo Editor</button>
+                <button class="btn-danger" onclick="clearConfig()">Deslogar</button>
+            </div>
+            <small style="color: #7f8c8d;">Seu token fica salvo localmente apenas no seu navegador.</small>
+        </div>
+
+        <div class="section" id="form-section" style="display:none;">
+            <h2 id="form-title">➕ Adicionar Novo Registro</h2>
+            <input type="hidden" id="edit-index">
+            <div class="form-group">
+                <input type="text" id="input-assunto" placeholder="Assunto">
+                <input type="text" id="input-link" placeholder="Link (https://...)">
+                <input type="text" id="input-texto" placeholder="Texto Complementar">
+                <button class="btn-success" id="btn-save" onclick="saveRecord()">Adicionar</button>
+                <button id="btn-cancel" style="display:none;" onclick="resetForm()">Cancelar</button>
+            </div>
+        </div>
+
         <input type="text" id="search" class="search-box" placeholder="🔎 Buscar por assunto ou texto complementar...">
         
-        <div class="table-container">
+        <div style="overflow-x:auto;">
             <table id="csv-table">
                 <thead>
                     <tr>
@@ -90,117 +65,240 @@
                         <th>Assunto</th>
                         <th>Link</th>
                         <th>Texto Complementar</th>
+                        <th class="admin-action" style="display:none;">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td colspan="4" style="text-align: center; color: #7f8c8d;">Carregando dados...</td>
-                    </tr>
+                    <tr><td colspan="5" style="text-align: center;">Carregando dados...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
     <script>
-        // CONFIGURAÇÃO: Se o seu arquivo CSV tiver outro nome, altere aqui:
-        const csvFileName = 'fascinante.csv'; 
+        // CONFIGURAÇÕES DO ARQUIVO
+        const repoName = 'fascinante';
+        const csvFileName = 'dados.csv'; // Mude se o seu arquivo tiver outro nome
 
-        async function loadCSV() {
-            try {
-                // Busca o arquivo CSV que está na mesma pasta do index.html
-                const response = await fetch(csvFileName);
-                if (!response.ok) {
-                    throw new Error('Não foi possível ler o arquivo CSV.');
-                }
-                const data = await response.text();
-                
-                // Separa as linhas do arquivo
-                const rows = data.split('\n');
-                const tbody = document.querySelector('#csv-table tbody');
-                tbody.innerHTML = ''; // Limpa a mensagem de carregando
+        let csvDataGlobal = []; // Guarda os dados na memória
 
-                // Começa do índice 1 para pular a linha de cabeçalho (datahora;assunto...)
-                for (let i = 1; i < rows.length; i++) {
-                    const rowText = rows[i].trim();
-                    if (!rowText) continue; // Pula linhas em branco
+        // Carrega as configurações do LocalStorage (se existirem)
+        document.getElementById('github-user').value = localStorage.getItem('git_user') || '';
+        document.getElementById('github-token').value = localStorage.getItem('git_token') || '';
 
-                    // Divide as colunas usando o ponto e vírgula (;)
-                    const cols = rowText.split(';');
-                    
-                    const datahora = cols[0] ? cols[0].trim() : '';
-                    const assunto = cols[1] ? cols[1].trim() : '';
-                    const link = cols[2] ? cols[2].trim() : '';
-                    const textoComplementar = cols[3] ? cols[3].trim() : '';
+        // Executa ao abrir a página
+        checkAdminMode();
+        loadCSV();
 
-                    const tr = document.createElement('tr');
+        function saveConfig() {
+            localStorage.setItem('git_user', document.getElementById('github-user').value.trim());
+            localStorage.setItem('git_token', document.getElementById('github-token').value.trim());
+            alert('Configurações salvas! Recarregando...');
+            location.reload();
+        }
 
-                    // 1. Coluna Data/Hora formatada
-                    const tdData = document.createElement('td');
-                    tdData.textContent = formatDateTime(datahora);
-                    tr.appendChild(tdData);
+        function clearConfig() {
+            localStorage.clear();
+            alert('Configurações removidas.');
+            location.reload();
+        }
 
-                    // 2. Coluna Assunto
-                    const tdAssunto = document.createElement('td');
-                    tdAssunto.textContent = assunto;
-                    tr.appendChild(tdAssunto);
-
-                    // 3. Coluna Link clicável
-                    const tdLink = document.createElement('td');
-                    if (link && link.startsWith('http')) {
-                        const a = document.createElement('a');
-                        a.href = link;
-                        a.target = '_blank'; // Abre em uma nova aba
-                        a.textContent = 'Assistir no YouTube ↗';
-                        tdLink.appendChild(a);
-                    } else {
-                        tdLink.textContent = '-';
-                    }
-                    tr.appendChild(tdLink);
-
-                    // 4. Coluna Texto Complementar
-                    const tdTexto = document.createElement('td');
-                    tdTexto.textContent = textoComplementar;
-                    tdTexto.className = 'text-complementar';
-                    tr.appendChild(tdTexto);
-
-                    tbody.appendChild(tr);
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                document.querySelector('#csv-table tbody').innerHTML = `
-                    <tr>
-                        <td colspan="4" style="color: #e74c3c; text-align: center; font-weight: bold;">
-                            Erro ao carregar os dados. Verifique se o arquivo "${csvFileName}" está na raiz do repositório.
-                        </td>
-                    </tr>
-                `;
+        function checkAdminMode() {
+            const token = localStorage.getItem('git_token');
+            if (token) {
+                document.getElementById('form-section').style.display = 'block';
+                // Mostra a coluna de ações mais tarde quando a tabela renderizar
             }
         }
 
-        // Transforma "2026-04-19-06-10-44" em "19/04/2026 às 06:10"
+        // Busca o CSV atualizado
+        async function loadCSV() {
+            try {
+                // Força o cache do navegador a ignorar para sempre pegar o mais recente
+                const response = await fetch(`${csvFileName}?t=${new Date().getTime()}`);
+                if (!response.ok) throw new Error('Erro ao ler CSV');
+                const text = await response.text();
+                parseCSV(text);
+            } catch (error) {
+                console.error(error);
+                alert('Erro ao carregar o arquivo CSV público.');
+            }
+        }
+
+        // Transforma o texto do CSV em Array de Objetos
+        function parseCSV(text) {
+            const rows = text.split('\n');
+            csvDataGlobal = [];
+            
+            for (let i = 1; i < rows.length; i++) {
+                const rowText = rows[i].trim();
+                if (!rowText) continue;
+                const cols = rowText.split(';');
+                csvDataGlobal.push({
+                    datahora: cols[0] || '',
+                    assunto: cols[1] || '',
+                    link: cols[2] || '',
+                    texto: cols[3] || ''
+                });
+            }
+            renderTable();
+        }
+
+        // Renderiza a tabela na tela
+        function renderTable() {
+            const tbody = document.querySelector('#csv-table tbody');
+            tbody.innerHTML = '';
+            const isAdmin = !!localStorage.getItem('git_token');
+
+            if (isAdmin) {
+                document.querySelectorAll('.admin-action').forEach(el => el.style.display = '');
+            }
+
+            csvDataGlobal.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                
+                tr.innerHTML = `
+                    <td>${formatDateTime(item.datahora)}</td>
+                    <td>${item.assunto}</td>
+                    <td>${item.link ? `<a href="${item.link}" target="_blank">Assistir ↗</a>` : '-'}</td>
+                    <td style="font-style:italic; color:#7f8c8d;">${item.texto}</td>
+                    ${isAdmin ? `
+                        <td class="actions-cell">
+                            <button onclick="editRow(${index})">✏️</button>
+                            <button class="btn-danger" onclick="deleteRow(${index})">🗑️</button>
+                        </td>
+                    ` : ''}
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Salva registro (Novo ou Editado)
+        function saveRecord() {
+            const assunto = document.getElementById('input-assunto').value.replace(/;/g, ' ').trim();
+            const link = document.getElementById('input-link').value.replace(/;/g, ' ').trim();
+            const texto = document.getElementById('input-texto').value.replace(/;/g, ' ').trim();
+            const editIndex = document.getElementById('edit-index').value;
+
+            if (!assunto) return alert('O campo Assunto é obrigatório!');
+
+            if (editIndex === "") {
+                // ADICIONAR NOVO
+                const agora = new Date();
+                const datahora = agora.getFullYear() + '-' + 
+                    String(agora.getMonth()+1).padStart(2, '0') + '-' + 
+                    String(agora.getDate()).padStart(2, '0') + '-' + 
+                    String(agora.getHours()).padStart(2, '0') + '-' + 
+                    String(agora.getMinutes()).padStart(2, '0') + '-' + 
+                    String(agora.getSeconds()).padStart(2, '0');
+
+                csvDataGlobal.push({ datahora, assunto, link, texto });
+            } else {
+                // SALVAR ALTERAÇÃO
+                csvDataGlobal[editIndex].assunto = assunto;
+                csvDataGlobal[editIndex].link = link;
+                csvDataGlobal[editIndex].texto = texto;
+            }
+
+            pushToGitHub();
+        }
+
+        function editRow(index) {
+            const item = csvDataGlobal[index];
+            document.getElementById('form-title').textContent = "✏️ Editar Registro";
+            document.getElementById('input-assunto').value = item.assunto;
+            document.getElementById('input-link').value = item.link;
+            document.getElementById('input-texto').value = item.texto;
+            document.getElementById('edit-index').value = index;
+            document.getElementById('btn-save').textContent = "Salvar Alterações";
+            document.getElementById('btn-cancel').style.display = 'inline-block';
+        }
+
+        function deleteRow(index) {
+            if (confirm('Tem certeza que deseja excluir esta linha?')) {
+                csvDataGlobal.splice(index, 1);
+                pushToGitHub();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('form-title').textContent = "➕ Adicionar Novo Registro";
+            document.getElementById('input-assunto').value = '';
+            document.getElementById('input-link').value = '';
+            document.getElementById('input-texto').value = '';
+            document.getElementById('edit-index').value = '';
+            document.getElementById('btn-save').textContent = "Adicionar";
+            document.getElementById('btn-cancel').style.display = 'none';
+        }
+
+        // Transforma o array de volta para texto CSV e envia para o GitHub via API
+        async function pushToGitHub() {
+            const user = localStorage.getItem('git_user');
+            const token = localStorage.getItem('git_token');
+
+            if (!user || !token) return alert('Usuário ou Token não configurados!');
+
+            // Reconstrói o CSV
+            let csvContent = "datahora;assunto;link;texto_complementar\n";
+            csvDataGlobal.forEach(item => {
+                csvContent += `${item.datahora};${item.assunto};${item.link};${item.texto}\n`;
+            });
+
+            const url = `https://api.github.com/repos/${user}/${repoName}/contents/${csvFileName}`;
+
+            try {
+                // 1. Precisamos pegar o SHA do arquivo atual antes de atualizar
+                const getFile = await fetch(url, {
+                    headers: { 'Authorization': `token ${token}` }
+                });
+                if (!getFile.ok) throw new Error('Erro ao obter o SHA do arquivo. Verifique seu usuário e repositório.');
+                const fileData = await getFile.json();
+                const sha = fileData.sha;
+
+                // 2. Envia a atualização (PUT)
+                // Resolve problemas de acentuação convertendo para UTF-8 de forma segura na Base64
+                const base64Content = btoa(unescape(encodeURIComponent(csvContent)));
+
+                const updateFile = await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: "Atualização automática via painel web",
+                        content: base64Content,
+                        sha: sha
+                    })
+                });
+
+                if (updateFile.ok) {
+                    alert('Sucesso! O CSV foi atualizado no GitHub. Aguarde cerca de 1 minuto para o GitHub Pages atualizar.');
+                    resetForm();
+                    renderTable();
+                } else {
+                    throw new Error('Falha ao enviar arquivo para o GitHub.');
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert(error.message);
+            }
+        }
+
         function formatDateTime(raw) {
             if (!raw || raw.length < 16) return raw;
             const parts = raw.split('-');
-            if (parts.length >= 5) {
-                return `${parts[2]}/${parts[1]}/${parts[0]} às ${parts[3]}:${parts[4]}`;
-            }
-            return raw;
+            return parts.length >= 5 ? `${parts[2]}/${parts[1]}/${parts[0]} às ${parts[3]}:${parts[4]}` : raw;
         }
 
-        // Filtro de busca em tempo real
+        // Filtro de busca
         document.getElementById('search').addEventListener('keyup', function() {
             const value = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#csv-table tbody tr');
-            
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                // Mostra ou esconde a linha baseado na busca
-                row.style.display = text.includes(value) ? '' : 'none';
+            document.querySelectorAll('#csv-table tbody tr').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(value) ? '' : 'none';
             });
         });
-
-        // Executa a função ao carregar a página
-        loadCSV();
     </script>
 </body>
 </html>
