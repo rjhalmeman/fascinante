@@ -3,52 +3,204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extrator e Gerenciador de Links</title>
-    <link rel="stylesheet" href="fascinante.css">
+    <title>Fascinante - Links e Assuntos</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-top: 0;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+        .search-box {
+            margin-bottom: 20px;
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .search-box:focus {
+            border-color: #3498db;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        th {
+            background-color: #34495e;
+            color: #fff;
+            font-weight: 600;
+        }
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-block;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .text-complementar {
+            font-style: italic;
+            color: #7f8c8d;
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <h1>Extrator de Links e Assuntos (CRUD)</h1>
-    </header>
 
-    <main>
-        <section class="card extrair-section">
-            <h2>Extrair Dados do E-mail</h2>
-            <p>Cole o texto contendo o assunto e o link abaixo:</p>
-            <textarea id="inputText" rows="6" placeholder='Exemplo: Assista a "Dicas para parar de esquecer o que estudou #shorts" no YouTubeExternal...'></textarea>
+    <div class="container">
+        <h1>Repositório Fascinante</h1>
+        
+        <input type="text" id="search" class="search-box" placeholder="🔎 Buscar por assunto ou texto complementar...">
+        
+        <div class="table-container">
+            <table id="csv-table">
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Assunto</th>
+                        <th>Link</th>
+                        <th>Texto Complementar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #7f8c8d;">Carregando dados...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURAÇÃO: Se o seu arquivo CSV tiver outro nome, altere aqui:
+        const csvFileName = 'fascinante.csv'; 
+
+        async function loadCSV() {
+            try {
+                // Busca o arquivo CSV que está na mesma pasta do index.html
+                const response = await fetch(csvFileName);
+                if (!response.ok) {
+                    throw new Error('Não foi possível ler o arquivo CSV.');
+                }
+                const data = await response.text();
+                
+                // Separa as linhas do arquivo
+                const rows = data.split('\n');
+                const tbody = document.querySelector('#csv-table tbody');
+                tbody.innerHTML = ''; // Limpa a mensagem de carregando
+
+                // Começa do índice 1 para pular a linha de cabeçalho (datahora;assunto...)
+                for (let i = 1; i < rows.length; i++) {
+                    const rowText = rows[i].trim();
+                    if (!rowText) continue; // Pula linhas em branco
+
+                    // Divide as colunas usando o ponto e vírgula (;)
+                    const cols = rowText.split(';');
+                    
+                    const datahora = cols[0] ? cols[0].trim() : '';
+                    const assunto = cols[1] ? cols[1].trim() : '';
+                    const link = cols[2] ? cols[2].trim() : '';
+                    const textoComplementar = cols[3] ? cols[3].trim() : '';
+
+                    const tr = document.createElement('tr');
+
+                    // 1. Coluna Data/Hora formatada
+                    const tdData = document.createElement('td');
+                    tdData.textContent = formatDateTime(datahora);
+                    tr.appendChild(tdData);
+
+                    // 2. Coluna Assunto
+                    const tdAssunto = document.createElement('td');
+                    tdAssunto.textContent = assunto;
+                    tr.appendChild(tdAssunto);
+
+                    // 3. Coluna Link clicável
+                    const tdLink = document.createElement('td');
+                    if (link && link.startsWith('http')) {
+                        const a = document.createElement('a');
+                        a.href = link;
+                        a.target = '_blank'; // Abre em uma nova aba
+                        a.textContent = 'Assistir no YouTube ↗';
+                        tdLink.appendChild(a);
+                    } else {
+                        tdLink.textContent = '-';
+                    }
+                    tr.appendChild(tdLink);
+
+                    // 4. Coluna Texto Complementar
+                    const tdTexto = document.createElement('td');
+                    tdTexto.textContent = textoComplementar;
+                    tdTexto.className = 'text-complementar';
+                    tr.appendChild(tdTexto);
+
+                    tbody.appendChild(tr);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                document.querySelector('#csv-table tbody').innerHTML = `
+                    <tr>
+                        <td colspan="4" style="color: #e74c3c; text-align: center; font-weight: bold;">
+                            Erro ao carregar os dados. Verifique se o arquivo "${csvFileName}" está na raiz do repositório.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Transforma "2026-04-19-06-10-44" em "19/04/2026 às 06:10"
+        function formatDateTime(raw) {
+            if (!raw || raw.length < 16) return raw;
+            const parts = raw.split('-');
+            if (parts.length >= 5) {
+                return `${parts[2]}/${parts[1]}/${parts[0]} às ${parts[3]}:${parts[4]}`;
+            }
+            return raw;
+        }
+
+        // Filtro de busca em tempo real
+        document.getElementById('search').addEventListener('keyup', function() {
+            const value = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#csv-table tbody tr');
             
-            <div class="acoes">
-                <button id="btnExtrair" class="btn-primario">Extrair e Adicionar</button>
-            </div>
-        </section>
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                // Mostra ou esconde a linha baseado na busca
+                row.style.display = text.includes(value) ? '' : 'none';
+            });
+        });
 
-        <section class="card crud-section">
-            <h2>Registros Salvos</h2>
-            
-            <div class="acoes-arquivo">
-                <input type="file" id="fileInput" accept=".csv" style="display: none;">
-                <button id="btnCarregar" class="btn-secundario" onclick="document.getElementById('fileInput').click()">Carregar CSV</button>
-                <button id="btnSalvar" class="btn-primario">Exportar para CSV</button>
-            </div>
-
-            <div class="tabela-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Data e Hora</th>
-                            <th>Assunto</th>
-                            <th>Link</th>
-                            <th>Texto Complementar</th>
-                            <th>Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        </tbody>
-                </table>
-            </div>
-        </section>
-    </main>
-
-    <script src="fascinante.js"></script>
+        // Executa a função ao carregar a página
+        loadCSV();
+    </script>
 </body>
 </html>
