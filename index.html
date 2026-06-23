@@ -25,6 +25,7 @@
         tr:hover { background-color: #f1f1f1; }
         a { color: #3498db; text-decoration: none; font-weight: bold; }
         .actions-cell { display: flex; gap: 5px; }
+        .loading-input { background-color: #f1f2f6; color: #7f8c8d; font-style: italic; }
     </style>
 </head>
 <body>
@@ -47,12 +48,13 @@
             <h2 id="form-title">➕ Adicionar Novo Registro</h2>
             <input type="hidden" id="edit-index">
             <div class="form-group">
-                <input type="text" id="input-assunto" placeholder="Assunto">
-                <input type="text" id="input-link" placeholder="Link (https://...)">
-                <input type="text" id="input-texto" placeholder="Texto Complementar">
+                <input type="text" id="input-link" placeholder="Cole o Link do YouTube aqui (https://...)">
+                <input type="text" id="input-assunto" placeholder="Assunto (Preenchido automaticamente)">
+                <input type="text" id="input-texto" placeholder="Texto Complementar / Canal (Preenchido automaticamente)">
                 <button class="btn-success" id="btn-save" onclick="saveRecord()">Adicionar</button>
                 <button id="btn-cancel" style="display:none;" onclick="resetForm()">Cancelar</button>
             </div>
+            <small id="youtube-status" style="color: #27ae60; display: none; font-weight: bold;"></small>
         </div>
 
         <input type="text" id="search" class="search-box" placeholder="🔎 Buscar por assunto ou texto complementar...">
@@ -78,7 +80,7 @@
     <script>
         // CONFIGURAÇÕES DO ARQUIVO
         const repoName = 'fascinante';
-        const csvFileName = 'fascinante.csv'; // Mude se o seu arquivo tiver outro nome
+        const csvFileName = 'fascinante.csv'; 
 
         let csvDataGlobal = []; // Guarda os dados na memória
 
@@ -107,14 +109,12 @@
             const token = localStorage.getItem('git_token');
             if (token) {
                 document.getElementById('form-section').style.display = 'block';
-                // Mostra a coluna de ações mais tarde quando a tabela renderizar
             }
         }
 
         // Busca o CSV atualizado
         async function loadCSV() {
             try {
-                // Força o cache do navegador a ignorar para sempre pegar o mais recente
                 const response = await fetch(`${csvFileName}?t=${new Date().getTime()}`);
                 if (!response.ok) throw new Error('Erro ao ler CSV');
                 const text = await response.text();
@@ -173,6 +173,129 @@
             });
         }
 
+        // ==========================================
+        // INTEGRAÇÃO COM EXTRACTOR DO YOUTUBE
+        // ==========================================
+
+        function extractVideoId(url) {
+            if (!url || typeof url !== 'string') return null;
+            let cleanUrl = url.trim();
+            const patterns = [
+                /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|v\/|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/,
+                /youtube\.com\/watch\?.*[?&]v=([a-zA-Z0-9_-]{11})/,
+                /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/,
+                /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+                /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+            ];
+
+            for (let pattern of patterns) {
+                const match = cleanUrl.match(pattern);
+                if (match && match[1]) return match[1];
+            }
+
+            const looseMatch = cleanUrl.match(/([a-zA-Z0-9_-]{11})/);
+            if (looseMatch && looseMatch[1] && looseMatch[1].length === 11) {
+                return looseMatch[1];
+            }
+            return null;
+        }
+
+        async function fetchVideoData(videoId) {
+            const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+            try {
+                const response = await fetch(oembedUrl);
+                if (!response.ok) throw new Error(`Erro oEmbed: ${response.status}`);
+                const data = await response.json();
+                return {
+                    title: data.title || 'Título não disponível',
+                    videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
+                    channelName: data.author_name || 'Canal não disponível'
+                };
+            } catch (error) {
+                console.warn('Erro oEmbed, tentando fallback...', error);
+                return await fetchVideoDataFallback(videoId);
+            }
+        }
+
+        async function fetchVideoDataFallback(videoId) {
+            try {
+                const pageUrl = `https://www.youtube.com/watch?v=${videoId}`;
+                const response = await fetch(pageUrl);
+                if (!response.ok) throw new Error(`Erro na página: ${response.status}`);
+                const html = await response.text();
+
+                let title = 'Título não disponível';
+                const titleMatch = html.match(/<title>(.*?)<\/title>/i);
+                if (titleMatch && titleMatch[1]) {
+                    title = titleMatch[1].replace(/\s*[-–]\s*YouTube\s*$/i, '').trim();
+                }
+
+                let channelName = 'Canal não disponível';
+                const channelMatch = html.match(/"author":"([^"]+)"/i);
+                if (channelMatch && channelMatch[1]) {
+                    channelName = channelMatch[1];
+                } else {
+                    const ownerMatch = html.match(/"owner":{"name":"([^"]+)"/i);
+                    if (ownerMatch && ownerMatch[1]) channelName = ownerMatch[1];
+                }
+
+                return {
+                    title: title,
+                    videoUrl: pageUrl,
+                    channelName: channelName
+                };
+            } catch (error) {
+                console.error('Fallback error:', error);
+                throw new Error('Não foi possível extrair dados automaticamente.');
+            }
+        }
+
+        // Listener para detectar quando o link é preenchido
+        document.getElementById('input-link').addEventListener('input', async function(e) {
+            const url = e.target.value.trim();
+            const videoId = extractVideoId(url);
+            
+            if (videoId) {
+                const inputAssunto = document.getElementById('input-assunto');
+                const inputTexto = document.getElementById('input-texto');
+                const statusLabel = document.getElementById('youtube-status');
+
+                // Muda o visual indicando o carregamento
+                statusLabel.textContent = "⏳ Buscando informações do YouTube...";
+                statusLabel.style.color = "#d35400";
+                statusLabel.style.display = "block";
+                inputAssunto.classList.add('loading-input');
+                inputTexto.classList.add('loading-input');
+                inputAssunto.value = "Carregando título...";
+                inputTexto.value = "Carregando canal...";
+
+                try {
+                    const data = await fetchVideoData(videoId);
+                    
+                    // Preenche os inputs com o resultado da API do YouTube
+                    inputAssunto.value = data.title;
+                    inputTexto.value = data.channelName;
+                    
+                    // Opcional: padroniza a URL salva no formato limpo do watch?v=
+                    e.target.value = data.videoUrl;
+
+                    statusLabel.textContent = "✅ Dados do YouTube extraídos com sucesso!";
+                    statusLabel.style.color = "#27ae60";
+                } catch (error) {
+                    console.error(error);
+                    statusLabel.textContent = "❌ Falha ao extrair dados do vídeo automaticamente.";
+                    statusLabel.style.color = "#c0392b";
+                    inputAssunto.value = "";
+                    inputTexto.value = "";
+                } finally {
+                    inputAssunto.classList.remove('loading-input');
+                    inputTexto.classList.remove('loading-input');
+                }
+            }
+        });
+
+        // ==========================================
+
         // Salva registro (Novo ou Editado)
         function saveRecord() {
             const assunto = document.getElementById('input-assunto').value.replace(/;/g, ' ').trim();
@@ -212,6 +335,7 @@
             document.getElementById('edit-index').value = index;
             document.getElementById('btn-save').textContent = "Salvar Alterações";
             document.getElementById('btn-cancel').style.display = 'inline-block';
+            document.getElementById('youtube-status').style.display = 'none';
         }
 
         function deleteRow(index) {
@@ -229,6 +353,7 @@
             document.getElementById('edit-index').value = '';
             document.getElementById('btn-save').textContent = "Adicionar";
             document.getElementById('btn-cancel').style.display = 'none';
+            document.getElementById('youtube-status').style.display = 'none';
         }
 
         // Transforma o array de volta para texto CSV e envia para o GitHub via API
@@ -238,7 +363,6 @@
 
             if (!user || !token) return alert('Usuário ou Token não configurados!');
 
-            // Reconstrói o CSV
             let csvContent = "datahora;assunto;link;texto_complementar\n";
             csvDataGlobal.forEach(item => {
                 csvContent += `${item.datahora};${item.assunto};${item.link};${item.texto}\n`;
@@ -247,7 +371,6 @@
             const url = `https://api.github.com/repos/${user}/${repoName}/contents/${csvFileName}`;
 
             try {
-                // 1. Precisamos pegar o SHA do arquivo atual antes de atualizar
                 const getFile = await fetch(url, {
                     headers: { 'Authorization': `token ${token}` }
                 });
@@ -255,8 +378,6 @@
                 const fileData = await getFile.json();
                 const sha = fileData.sha;
 
-                // 2. Envia a atualização (PUT)
-                // Resolve problemas de acentuação convertendo para UTF-8 de forma segura na Base64
                 const base64Content = btoa(unescape(encodeURIComponent(csvContent)));
 
                 const updateFile = await fetch(url, {

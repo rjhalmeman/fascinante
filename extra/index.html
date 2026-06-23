@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extrator de Vídeo YouTube</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1.5rem;
+        }
+        .card {
+            background: white;
+            border-radius: 2rem;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+            padding: 2rem 2.5rem;
+            max-width: 700px;
+            width: 100%;
+            transition: 0.2s;
+        }
+        h1 {
+            font-weight: 600;
+            font-size: 1.8rem;
+            letter-spacing: -0.5px;
+            color: #0b0b0b;
+            margin-top: 0;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        h1 small {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #5f6368;
+            margin-left: auto;
+        }
+        .sub {
+            color: #3c4043;
+            margin-bottom: 1.8rem;
+            border-left: 4px solid #ff0033;
+            padding-left: 1rem;
+            font-size: 0.95rem;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin-bottom: 1.8rem;
+        }
+        .input-group label {
+            font-weight: 500;
+            color: #1e1e1e;
+            font-size: 0.95rem;
+        }
+        .input-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .input-row input {
+            flex: 1;
+            padding: 0.8rem 1.2rem;
+            border: 1.5px solid #dadce0;
+            border-radius: 60px;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.2s;
+            background: #fafafa;
+        }
+        .input-row input:focus {
+            border-color: #1a73e8;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(26,115,232,0.2);
+        }
+        .input-row button {
+            background: #1a73e8;
+            border: none;
+            color: white;
+            font-weight: 500;
+            padding: 0.8rem 2rem;
+            border-radius: 60px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+        .input-row button:hover {
+            background: #1557b0;
+            transform: scale(0.98);
+        }
+        .input-row button:active {
+            background: #0d47a1;
+        }
+        .result-area {
+            background: #f8f9fa;
+            border-radius: 1.5rem;
+            padding: 1.5rem 1.8rem;
+            margin-top: 1.2rem;
+            border: 1px solid #e8eaed;
+        }
+        .result-area h3 {
+            font-weight: 500;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #5f6368;
+            margin: 0 0 0.75rem 0;
+        }
+        .json-box {
+            background: #1e1e1e;
+            color: #e3e3e3;
+            padding: 1.2rem 1.5rem;
+            border-radius: 1rem;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 260px;
+            overflow-y: auto;
+            line-height: 1.5;
+            border: 1px solid #333;
+        }
+        .json-box .key {
+            color: #f7c948;
+        }
+        .json-box .string {
+            color: #b0d9b0;
+        }
+        .json-box .punctuation {
+            color: #c5c5c5;
+        }
+        .empty-message {
+            color: #5f6368;
+            font-style: italic;
+            padding: 0.5rem 0;
+            text-align: center;
+        }
+        .error-message {
+            color: #d93025;
+            background: #fce8e6;
+            padding: 0.7rem 1.2rem;
+            border-radius: 40px;
+            margin-top: 0.8rem;
+            font-size: 0.9rem;
+            border-left: 4px solid #d93025;
+        }
+        .footer {
+            margin-top: 1.8rem;
+            font-size: 0.8rem;
+            color: #7a7f85;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 1.2rem;
+        }
+        .badge {
+            background: #e8ebee;
+            padding: 0.2rem 0.8rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #1e1e1e;
+        }
+        @media (max-width: 550px) {
+            .card { padding: 1.5rem; }
+            .input-row button { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>
+            🎬 YouTube Extractor
+            <small>v1</small>
+        </h1>
+        <div class="sub">
+            Cole o link do vídeo e obtenha nome, link e canal em JSON
+        </div>
+
+        <div class="input-group">
+            <label for="videoUrl">Link do vídeo</label>
+            <div class="input-row">
+                <input 
+                    type="url" 
+                    id="videoUrl" 
+                    placeholder="https://youtu.be/Ko7yWIXvN9o?si=..." 
+                    value="https://youtu.be/Ko7yWIXvN9o?si=9UXOBqQc_cwCEgPH"
+                >
+                <button id="extractBtn">🔍 Extrair</button>
+            </div>
+        </div>
+
+        <div id="resultContainer" class="result-area">
+            <h3>📦 JSON resultante</h3>
+            <div id="jsonOutput" class="json-box">
+                <span class="empty-message">Nenhum dado ainda. Cole um link e clique em "Extrair".</span>
+            </div>
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+        </div>
+        <div class="footer">
+            <span class="badge">🔗 YouTube oEmbed + fallback</span> 
+            &nbsp; • &nbsp; Informações públicas
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const inputUrl = document.getElementById('videoUrl');
+            const extractBtn = document.getElementById('extractBtn');
+            const jsonOutput = document.getElementById('jsonOutput');
+            const errorDiv = document.getElementById('errorMessage');
+
+            // Função para extrair o ID do vídeo de diferentes formatos de URL do YouTube
+            function extractVideoId(url) {
+                if (!url || typeof url !== 'string') return null;
+
+                // Limpa espaços e parâmetros extras
+                let cleanUrl = url.trim();
+
+                // Tenta match com padrões comuns:
+                //  - youtu.be/{id}
+                //  - youtube.com/watch?v={id}
+                //  - youtube.com/v/{id}
+                //  - youtube.com/embed/{id}
+                //  - youtube.com/shorts/{id}
+                const patterns = [
+                    /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|v\/|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/,
+                    /youtube\.com\/watch\?.*[?&]v=([a-zA-Z0-9_-]{11})/,
+                    /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/,
+                    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+                    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+                ];
+
+                for (let pattern of patterns) {
+                    const match = cleanUrl.match(pattern);
+                    if (match && match[1]) {
+                        return match[1];
+                    }
+                }
+
+                // Se não encontrou com os padrões, tenta extrair qualquer sequência de 11 caracteres 
+                // que pareça um ID (letras, números, underline e hífen)
+                const looseMatch = cleanUrl.match(/([a-zA-Z0-9_-]{11})/);
+                if (looseMatch && looseMatch[1]) {
+                    // verifica se o trecho parece um ID de vídeo (evita falsos positivos)
+                    const possibleId = looseMatch[1];
+                    // IDs do YouTube geralmente não têm caracteres repetidos em excesso, mas apenas um filtro básico
+                    if (possibleId.length === 11) {
+                        return possibleId;
+                    }
+                }
+                return null;
+            }
+
+            // Função para buscar dados via oEmbed (mais confiável e oficial)
+            async function fetchVideoData(videoId) {
+                // Usamos a API oEmbed do YouTube (sem necessidade de chave)
+                const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+                try {
+                    const response = await fetch(oembedUrl);
+                    if (!response.ok) {
+                        throw new Error(`Erro na requisição oEmbed: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    // O oEmbed retorna: title, author_name, author_url, etc.
+                    // Queremos: nome do vídeo (title), link (url do vídeo), nome do canal (author_name)
+                    return {
+                        title: data.title || 'Título não disponível',
+                        videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
+                        channelName: data.author_name || 'Canal não disponível',
+                        // Incluímos também o thumbnail e outros campos, mas mantemos o foco no pedido
+                        raw: data // para debug, mas não exibimos
+                    };
+                } catch (error) {
+                    console.warn('Erro no oEmbed:', error);
+                    // Fallback: tenta extrair informações da página (menos confiável)
+                    return await fetchVideoDataFallback(videoId);
+                }
+            }
+
+            // Fallback: tenta buscar via scraping da página (apenas título e canal, mais lento e pode falhar)
+            async function fetchVideoDataFallback(videoId) {
+                try {
+                    const pageUrl = `https://www.youtube.com/watch?v=${videoId}`;
+                    const response = await fetch(pageUrl);
+                    if (!response.ok) {
+                        throw new Error(`Erro ao acessar a página: ${response.status}`);
+                    }
+                    const html = await response.text();
+
+                    // Extrai título: procuramos por <title> no head
+                    let title = 'Título não disponível';
+                    const titleMatch = html.match(/<title>(.*?)<\/title>/i);
+                    if (titleMatch && titleMatch[1]) {
+                        let rawTitle = titleMatch[1];
+                        // Remove sufixo " - YouTube" que sempre aparece
+                        rawTitle = rawTitle.replace(/\s*[-–]\s*YouTube\s*$/i, '').trim();
+                        if (rawTitle) title = rawTitle;
+                    }
+
+                    // Extrai nome do canal: tentamos encontrar "channel-name" ou "ytd-channel-name"
+                    let channelName = 'Canal não disponível';
+                    // Método 1: procura pelo padrão "channel-name" no JSON-LD ou metadados
+                    const channelMatch = html.match(/"author":"([^"]+)"/i);
+                    if (channelMatch && channelMatch[1]) {
+                        channelName = channelMatch[1];
+                    } else {
+                        // Método 2: procura no texto "owner" ou "channel" 
+                        const ownerMatch = html.match(/"owner":{"name":"([^"]+)"/i);
+                        if (ownerMatch && ownerMatch[1]) {
+                            channelName = ownerMatch[1];
+                        } else {
+                            // Método 3: busca por padrão de "channel" em microdata
+                            const microMatch = html.match(/<link\s+itemprop="name"\s+content="([^"]+)"\s*\/?>/i);
+                            if (microMatch && microMatch[1]) {
+                                channelName = microMatch[1];
+                            } else {
+                                // Último recurso: tenta encontrar dentro de um elemento <span> com classe "channel-name"
+                                const spanMatch = html.match(/<span[^>]*class="[^"]*channel-name[^"]*"[^>]*>([^<]+)<\/span>/i);
+                                if (spanMatch && spanMatch[1]) {
+                                    channelName = spanMatch[1].trim();
+                                }
+                            }
+                        }
+                    }
+
+                    return {
+                        title: title,
+                        videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
+                        channelName: channelName
+                    };
+                } catch (error) {
+                    console.error('Fallback error:', error);
+                    throw new Error('Não foi possível extrair os dados do vídeo. Verifique o link e tente novamente.');
+                }
+            }
+
+            // Função principal para extrair e exibir
+            async function extractAndDisplay() {
+                // Limpa mensagem de erro
+                errorDiv.style.display = 'none';
+                errorDiv.textContent = '';
+
+                const url = inputUrl.value.trim();
+                if (!url) {
+                    showError('Por favor, insira um link de vídeo do YouTube.');
+                    return;
+                }
+
+                // Extrai o ID do vídeo
+                const videoId = extractVideoId(url);
+                if (!videoId) {
+                    showError('Não foi possível identificar o ID do vídeo. Certifique-se de que o link é válido (ex: youtu.be/... ou youtube.com/watch?v=...)');
+                    return;
+                }
+
+                // Atualiza UI para estado de carregamento
+                jsonOutput.innerHTML = `<span style="color: #b0b0b0;">⏳ Carregando informações...</span>`;
+
+                try {
+                    // Busca dados (primeiro com oEmbed, fallback para scraping)
+                    const data = await fetchVideoData(videoId);
+
+                    // Monta o JSON conforme solicitado: nome, link, nome do canal
+                    const result = {
+                        nome: data.title || 'Título não disponível',
+                        link: data.videoUrl || `https://www.youtube.com/watch?v=${videoId}`,
+                        canal: data.channelName || 'Canal não disponível'
+                    };
+
+                    // Exibe o JSON formatado com syntax highlight simples
+                    displayJson(result);
+                } catch (error) {
+                    console.error('Erro na extração:', error);
+                    showError(error.message || 'Erro ao processar o vídeo. Tente novamente.');
+                    jsonOutput.innerHTML = `<span class="empty-message">❌ Falha ao obter dados.</span>`;
+                }
+            }
+
+            // Exibe JSON com formatação bonitinha
+            function displayJson(obj) {
+                const jsonStr = JSON.stringify(obj, null, 2);
+                // Aplica highlight básico (sem biblioteca externa)
+                const highlighted = jsonStr.replace(
+                    /("(?:[^"\\]|\\.)*"):\s*("(?:[^"\\]|\\.)*"|[\d.]+|true|false|null)/g,
+                    (match, key, value) => {
+                        // key sempre será uma string entre aspas
+                        const keyColored = `<span class="key">${key}</span>`;
+                        let valueColored = '';
+                        if (value.startsWith('"')) {
+                            valueColored = `<span class="string">${value}</span>`;
+                        } else {
+                            valueColored = `<span class="punctuation">${value}</span>`;
+                        }
+                        return `${keyColored}: ${valueColored}`;
+                    }
+                ).replace(/\n/g, '<br>').replace(/ {2}/g, '&nbsp;&nbsp;');
+
+                jsonOutput.innerHTML = highlighted;
+            }
+
+            // Mostra mensagem de erro
+            function showError(msg) {
+                errorDiv.textContent = msg;
+                errorDiv.style.display = 'block';
+                // Rola para o erro
+                errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // Event Listeners
+            extractBtn.addEventListener('click', extractAndDisplay);
+
+            // Permite Enter no campo de input
+            inputUrl.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    extractBtn.click();
+                }
+            });
+
+            // Carrega com o exemplo fornecido automaticamente (opcional)
+            // Mas o usuário pode mudar e clicar em extrair
+            // Já colocamos o link de exemplo no value, então apenas focamos
+            // Pode extrair automaticamente ao carregar? Vamos fazer isso para demonstração
+            window.addEventListener('DOMContentLoaded', () => {
+                // Extrai automaticamente o exemplo ao carregar a página
+                // Pequeno atraso para garantir que tudo está pronto
+                setTimeout(() => {
+                    extractBtn.click();
+                }, 300);
+            });
+        })();
+    </script>
+</body>
+</html>
